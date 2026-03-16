@@ -94,3 +94,15 @@ You have 1 week before a product demo.
 2. How would you prioritize fixing them, and what does your prioritization give up?
 3. Given all of the knowledge you know, provide a 1-week timeline of your implementation details and how it will impact the users.
 4. What makes the tool service layer harder to make resilient than a typical stateless API?
+
+### Task 4 Response
+
+The main reliability risks are high tail latency from long LLM chains, cascading failures from slow downstream services, and workflows that pause for user input leaving orphaned state. I would first add strict timeouts, retries with backoff, and circuit breakers for all external agent and tool calls to prevent cascading failures. Next, I would introduce workflow TTLs and cleanup jobs to remove stalled workflows and release resources. Then I would move long-running steps to asynchronous processing and add distributed tracing and metrics to identify bottlenecks. Tool services are harder to make resilient because they rely on external systems with unpredictable latency and side effects, making retries and failure handling more complex.
+
+### One-Week Implementation Plan
+
+Day 1–2: Add timeouts, retries, and circuit breakers for agent and tool calls.  
+Day 3: Implement workflow TTLs and cleanup for stalled workflows.  
+Day 4–5: Move long-running steps to asynchronous processing.  
+Day 6: Add tracing, metrics, and logging for observability.  
+Day 7: Run load tests and tune timeout thresholds.
