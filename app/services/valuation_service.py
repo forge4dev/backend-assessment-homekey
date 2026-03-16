@@ -37,11 +37,24 @@ class ValuationService:
 
     def get_comparable_sales(self, property_id: str) -> dict:
         """Return top comparable sales for the listing page sidebar."""
+
+        # REVIEW (Low Priority):
+        # Cache key does not follow the VALUATION_CACHE_PREFIX pattern used elsewhere.
+        # For consistency and easier cache management, consider using:
+        # cache_key = f"{self.VALUATION_CACHE_PREFIX}comps:{property_id}"
         cache_key = f"comps:{property_id}"
+
         cached = self.redis.get(cache_key)
         if cached:
             return json.loads(cached)
 
+        # REVIEW (High Priority):
+        # This query filters by property_id and sorts by sale_price.
+        # Without a compound index (property_id, sale_price),
+        # MongoDB may perform a collection scan and in-memory sort.
+        #
+        # Suggested index:
+        # db.comparable_sales.create_index([("property_id", 1), ("sale_price", -1)])
         top_comps = list(
             self.db.comparable_sales
             .find({"property_id": property_id})
@@ -49,15 +62,35 @@ class ValuationService:
             .limit(3)
         )
 
+        # REVIEW (Medium Priority):
+        # This performs a second database query on the same dataset.
+        # Under high load this doubles the database work.
+        #
+        # Suggested improvement:
+        # Use an aggregation pipeline to compute both the top results
+        # and the count in a single query.
         total = self.db.comparable_sales.count_documents({"property_id": property_id})
 
+        # REVIEW (Low Priority):
+        # The query retrieves the entire document.
+        # For better performance, consider using projection to return only needed fields:
+        #
+        # .find({"property_id": property_id},
+        #       {"address": 1, "sale_price": 1, "sold_at": 1, "distance_km": 1})
         result = {
             "top_comparable_sales": [
                 {**c, "_id": str(c["_id"])} for c in top_comps
             ],
             "total_count": total,
         }
+
+        # REVIEW (Medium Priority):
+        # Potential cache stampede risk when the cache expires and many
+        # concurrent requests hit the database simultaneously.
+        # Possible solution:
+        # introduce a short Redis lock (SETNX) or request coalescing.
         self.redis.set(cache_key, json.dumps(result), ex=COMPS_CACHE_TTL)
+
         return result
 
     def invalidate(self, property_id: str) -> None:
