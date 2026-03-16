@@ -33,6 +33,10 @@ The constraint is intentional. We want to see how you triage.
 
 ---
 
+### Task 1 Response
+
+The most critical bug is a race condition in `submit_offer`, where the code checks for an existing offer using `find_one` before inserting. Under concurrent requests, multiple submissions can pass this check and insert duplicate offers for the same `(property_id, buyer_id)`. I fixed this by enforcing a MongoDB **compound unique index** on `(property_id, buyer_id)` and handling `DuplicateKeyError` during insertion, ensuring atomic deduplication at the database level. I also identified two additional issues: Redis cache staleness due to missing invalidation after new offers, and an N+1 query pattern when loading buyer data for each offer. These were not prioritized first because they affect performance and UI freshness, while the race condition directly impacts data integrity and transaction correctness.
+
 ## Task 2
 
 **Format:** explanation
