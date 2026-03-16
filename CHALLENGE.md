@@ -63,6 +63,10 @@ This works fine in staging.
 
 ---
 
+### Task 2 Response
+
+Embedding offers inside the property document can cause the document to grow very large as popular listings accumulate many offers, potentially hitting MongoDB’s 16MB document limit. It also creates a hot document problem because every new offer rewrites the entire property document, increasing write contention under heavy traffic. A better approach is to store offers in a separate `offers` collection with a reference to `property_id` and appropriate indexes such as `(property_id)` and `(property_id, buyer_id)` unique. This allows offers to scale independently and improves write performance. The tradeoff is that retrieving property data with its offers now requires additional queries or aggregation, increasing application complexity compared to the embedded model.
+
 ## Task 3
 
 **Format:** code + explanation
