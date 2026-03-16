@@ -76,6 +76,10 @@ Leave comments on any issue you'd flag and order them by priority as we scale up
 
 ---
 
+### Task 3 Response
+
+The highest priority issue in `get_comparable_sales` is the lack of a proper index on `(property_id, sale_price)`, which can cause collection scans and expensive in-memory sorting as the dataset grows. The method also executes two separate database queries (one for the top comps and one for the count), doubling the load under high traffic. Another concern is potential cache stampede when the Redis entry expires and many requests hit the database simultaneously. Additionally, the query retrieves full documents instead of projecting only required fields, increasing payload size and serialization cost. I would address indexing first, then reduce duplicate queries (e.g., via aggregation), and finally add cache protection mechanisms.
+
 ## Task 4
 
 **Format:** explanation
